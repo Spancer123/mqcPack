@@ -3094,7 +3094,8 @@
       type(mqc_scf_integral)::integralOut
       type(mqc_matrix)::tmpMatrixAlpha,tmpMatrixBeta,tmpMatrixAlphaBeta,tmpMatrixBetaAlpha
       type(mqc_matrix)::outMatrixAlpha,outMatrixBeta,outMatrixAlphaBeta,outMatrixBetaAlpha
-      integer(kind=int64)::nDimAlpha1=0,nDimBeta1=0,nDimAlpha2=0,nDimBeta2=0,nAlpha=0,nBeta=0,i,my_axis
+      integer(kind=int64)::nDimAlpha1=0,nDimBeta1=0,nDimAlpha2=0,nDimBeta2=0,nAlpha=0,nBeta=0,i,my_axis,&
+       StrA=0,EndA=0,StrB=0,EndB=0
 
       if(present(axis)) then
         my_axis = axis
@@ -3109,13 +3110,15 @@
             call mqc_error_l('OrbString variable must be declared with &
             &number of alpha and/or beta electrons in string input',6,'present(orbString)', &
             present(orbString),'present(alphaOrbsIn)',present(alphaOrbsIn),'present(betaOrbsIn)', &
-            present(betaOrbsIn))
+            present(betaOrbsIn)) 
           if(size(alphaOrbsIn).ne.1.or.size(betaOrbsIn).ne.1) &
             call mqc_error_i('Only one integer can be declared when inputting number of alpha and beta orbitals',&
-            6,'size(alphaOrbsIn)',size(alphaOrbsIn),'size(betaOrbsIn)',size(betaOrbsIn))
+            6,'size(alphaOrbsIn)',size(alphaOrbsIn),'size(betaOrbsInput)',size(betaOrbsIn))
         endIf
         nAlpha = alphaOrbsIn(1)
         nBeta = betaOrbsIn(1) 
+      else if (myorbstring.eq.'userange')then
+        print *,'Specify startorb and endorb' 
       else
         myOrbString = 'usestrings'
       endIf
@@ -3124,6 +3127,7 @@
       nDimBeta1 = integral%blockSize('Beta',1)
       nDimAlpha2 = integral%blockSize('Alpha',2) 
       nDimBeta2 = integral%blockSize('Beta',2)
+
 
       select case (myOrbString)
       case ('occupied')
@@ -3152,6 +3156,28 @@
           betaOrbs = betaOrbsIn
         else
           betaOrbs = [integer(kind=int64)::]
+        endIf
+      case ('userange')
+        StrA=alphaOrbsIn(1)
+        EndA=alphaOrbsIn(2)
+        StrB = betaOrbsIn(1)
+        EndB = betaOrbsIn(2)
+        allocate(alphaOrbs(EndA-StrA+1),betaOrbs(EndB-StrB+1))
+        print *,'endA-strA+1 is',EndA-StrA+1
+        print *,'endB-strB+1 is',EndB-StrB+1
+        print *,'StrA is',StrA
+        print *,'EndA is',EndA
+        print *,'StrB is',StrB
+        print *,'EndB is',EndB
+        if(present(alphaOrbsIn)) then
+            alphaOrbs = [(i,i=StrA,EndA)]
+        else
+            alphaOrbs = [integer(kind=int64)::]
+        endIf
+        if(present(betaOrbsIn)) then
+            betaOrbs = [(i,i=StrB,EndB)]
+        else
+            betaOrbs = [integer(kind=int64)::]
         endIf
       case default
         call mqc_error_a('Unrecognized orbital string definition in MQC_Integral_Output_Orbitals',&
@@ -3257,8 +3283,8 @@
           call outMatrixAlphaBeta%init(nDimBeta1,size(alphaOrbs))
           do i = 1,size(alphaOrbs)
             if(alphaOrbs(i).ge.0) then
-              call outMatrixAlpha%vput(tmpMatrixAlpha%vat([0],[alphaOrbs(i)]),[0],[i])
-              call outMatrixAlphaBeta%vput(tmpMatrixAlphaBeta%vat([0],[alphaOrbs(i)]),[0],[i])
+                call outMatrixAlpha%vput(tmpMatrixAlpha%vat([0],[alphaOrbs(i)]),[0],[i])
+                call outMatrixAlphaBeta%vput(tmpMatrixAlphaBeta%vat([0],[alphaOrbs(i)]),[0],[i])
             else
               call outMatrixAlphaBeta%vput(tmpMatrixBeta%vat([0],[abs(alphaOrbs(i))]),[0],[i])
               call outMatrixAlpha%vput(tmpMatrixBetaAlpha%vat([0],[abs(alphaOrbs(i))]),[0],[i])
